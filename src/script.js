@@ -1,6 +1,8 @@
 import './style.css'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+// import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+
 import * as dat from 'dat.gui'
 
 /**
@@ -16,22 +18,31 @@ const canvas = document.querySelector('canvas.webgl')
 const scene = new THREE.Scene()
 
 /**
- * Textures
+ * Models
  */
-// const textureLoader = new THREE.TextureLoader()
+// const gltfLoader = new GLTFLoader()
+// gltfLoader.load(
+//     '/glTF/Fox.gltf',
+//     (gltf) =>
+//     {
+//         let box = gltf.scene.children[0];
+//         console.log(box);
+//         box.scale.set(0.25, 0.25, 0.25)
+//         // scene.add(box)
+//     }
+// )
 
-/**
- * House
- */
-// House container
-const house = new THREE.Group()
-scene.add(house)
+const plane = new THREE.Mesh(
+    new THREE.PlaneBufferGeometry(100, 100),
+    new THREE.MeshStandardMaterial({ roughness: 0.7 })
+)
+plane.receiveShadow = true
+plane.rotation.x = - Math.PI * 0.5
+plane.position.y = - 15
+plane.position.z = - 20
+scene.add(plane);
 
-
-// console.log(box)
-
-
-const numShapes = 7;
+const numShapes = 1800;
 const materialCommonProperties = {
     // wireframe: true,
     side: THREE.DoubleSide,
@@ -48,7 +59,8 @@ const materials = [
         ...materialCommonProperties
     }),
     new THREE.MeshPhysicalMaterial({
-        color: 0xdf9595,
+        // color: 0xdf9595,
+        color: 0x74effc,
         roughness: 0.25,
         metalness: 0,
         reflectivity: 0.09,
@@ -69,26 +81,27 @@ const materials = [
 
 // Box
 const box = new THREE.Mesh(
-    new THREE.BoxBufferGeometry(2, 5, 2),
+    // new THREE.BoxBufferGeometry(2, 5, 2),
+    new THREE.TorusBufferGeometry( 10, 3, 16, 100 ),
     new THREE.MeshStandardMaterial({
         color: 0xff0000,
-        wireframe: true,
+        // wireframe: true,
     })
     // materials[0]
 )
-scene.add(box);
-console.log(box);
+// box.castShadow = true;
+// scene.add(box);
 
 let currentIdx = 0;
+
 const boxIndexes = box.geometry.index.array;
 const boxVertices = box.geometry.attributes.position.array;
 for (let i = 0; i < numShapes; i++) {
     const geometry = new THREE.BufferGeometry();
-    let indices = [1, 5, 2];
+    let indices = [];
     const vertices = 6//Math.floor((Math.random() + 3) * 2);
     const numVerticesData = vertices*3;
     const positions = new Float32Array(numVerticesData);
-    console.log(vertices, positions);
     
     // const x = (Math.random()/2) * 4;
     // const y = (Math.random()/2) * 4;
@@ -105,80 +118,39 @@ for (let i = 0; i < numShapes; i++) {
             break;
         }
     }
-    for (let x = 0; x<4; x++) {
+    let hash = {};
+    let maxTries = 10;
+    for (let x = 0; x<vertices; x++) {
+        // let pos = Math.floor(Math.random() * (vertices-1));
+        // indices.push(pos);
+        // indices
         let i1 = Math.floor(Math.random() * (vertices-1)),
             i2 = Math.floor(Math.random() * (vertices-1)),
             i3 = Math.floor(Math.random() * (vertices-1));
-        indices = indices.concat([i1, i2, i3]);
+        let faceIndices = Array.from(new Set([i1, i2, i3]));
+        let tries = 0;
+        while (faceIndices.length < 3 && tries<maxTries) {
+            faceIndices.push(Math.floor(Math.random() * (vertices-1)));
+            faceIndices = Array.from(new Set(faceIndices));
+            tries++;
+
+            if (tries==10) console.log("I CAN'T DO THIS ANYMORE!");
+        }
+        indices = indices.concat(faceIndices);
     }
-    // positions.
-    console.log(indices);
-    // geometry.setIndex(indices);
+
+    geometry.setIndex(indices);
     geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     geometry.computeVertexNormals();
     geometry.normalizeNormals();
 
     const m = Math.floor(Math.random() * materials.length)
-    console.log('m', m, materials.length)
     const shape = new THREE.Mesh(geometry, materials[m])
-    // shape.position.x = 0;
-    console.log()
+    shape.castShadow = true;
+    shape.receiveShadow = true;
+
     scene.add(shape);
 }
-
-
-
-const geometry = new THREE.BufferGeometry();
-const vertices = new Float32Array( [
-	-1.0, -1.0,  1.0,
-	 1.0, -1.0,  1.0,
-	 1.0,  1.0,  1.0,
-
-	//  1.0,  1.0,  1.0,
-	-1.0,  1.0,  1.0,
-	// -1.0, -1.0,  1.0
-] );
-
-const indices = [0, 1, 2, 2, 3, 0];
-// // itemSize = 3 because there are 3 values (components) per vertex
-geometry.setIndex( indices );
-geometry.setAttribute( 'position', new THREE.BufferAttribute( vertices, 3 ) );
-geometry.computeVertexNormals();
-// const material = new THREE.MeshBasicMaterial( { color: 0xff0000 } );
-const mesh = new THREE.Mesh( geometry, materials[0] );
-mesh.position.z = 3;
-scene.add(mesh)
-// walls.geometry.setAttribute('uv2', new THREE.Float32BufferAttribute(walls.geometry.attributes.uv.array, 2))
-// walls.position.y = 1.25
-
-// Graves
-// const graves = new THREE.Group()
-// scene.add(graves)
-
-// const graveGeometry = new THREE.BoxBufferGeometry(0.6, 0.8, 0.1)
-// const graveMaterial = new THREE.MeshStandardMaterial({ color: '#727272' })
-
-// for(let i = 0; i < 50; i++)
-// {
-//     const angle = Math.random() * Math.PI * 2 // Random angle
-//     const radius = 3 + Math.random() * 6      // Random radius
-//     const x = Math.cos(angle) * radius        // Get the x position using cosinus
-//     const z = Math.sin(angle) * radius        // Get the z position using sinus
-
-//     // Create the mesh
-//     const grave = new THREE.Mesh(graveGeometry, graveMaterial)
-//     grave.castShadow = true
-
-//     // Position
-//     grave.position.set(x, 0.3, z)                              
-
-//     // Rotation
-//     grave.rotation.z = (Math.random() - 0.5) * 0.4
-//     grave.rotation.y = (Math.random() - 0.5) * 0.4
-
-//     // Add to the graves container
-//     graves.add(grave)
-// }
 
 /**
  * Lights
@@ -188,32 +160,31 @@ const ambientLight = new THREE.AmbientLight(0x505050, 1)
 scene.add(ambientLight)
 
 // Directional light
-const moonLight = new THREE.DirectionalLight('white', 2)
-moonLight.castShadow = true
-moonLight.shadow.mapSize.width = 256
-moonLight.shadow.mapSize.height = 256
-// moonLight.shadow.camera.far = 15
+const moonLight = new THREE.DirectionalLight('white', 1)
+moonLight.castShadow = true;
+moonLight.shadow.camera.top = 20
+moonLight.shadow.camera.right = 20
+moonLight.shadow.camera.bottom = - 20
+moonLight.shadow.camera.left = - 20
+moonLight.shadow.mapSize.width = 1024
+moonLight.shadow.mapSize.height = 1024
+moonLight.shadow.camera.near = 0.1
+moonLight.shadow.camera.far = 100
 moonLight.position.set(10, 15, 30)
 moonLight.lookAt(10, 5, 0)
 const helper = new THREE.DirectionalLightHelper( moonLight, 5 );
+helper.visible = true;
+helper.color = 0xff0000;
 scene.add(moonLight)
 
-scene.add( helper );
+const cameraHelper = new THREE.CameraHelper(moonLight.shadow.camera)
+scene.add( helper, cameraHelper );
 // window.requestAnimationFrame(() =>
 // {
 //     helper.position.copy(rectAreaLight.position)
 //     helper.quaternion.copy(rectAreaLight.quaternion)
 //     helper.update()
 // })
-// // Door light
-// const doorLight = new THREE.PointLight('#ff7d46', 1, 7)
-// doorLight.castShadow = true
-// doorLight.shadow.mapSize.width = 256
-// doorLight.shadow.mapSize.height = 256
-// doorLight.shadow.camera.far = 7
-
-// doorLight.position.set(0, 2.2, 2.7)
-// house.add(doorLight)
 
 /**
  * Fog
@@ -248,13 +219,12 @@ window.addEventListener('resize', () =>
  * Camera
  */
 // Base camera
-const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 100)
-camera.position.x = 4
-camera.position.y = 2
-camera.position.z = 5
-camera.lookAt(moonLight);
+const camera = new THREE.PerspectiveCamera(75, sizes.width / sizes.height, 0.1, 1000)
+// camera.position.x = 4
+camera.position.y = 20
+camera.position.z = 25
 
-scene.add(camera)
+scene.add(camera);
 // Controls
 const controls = new OrbitControls(camera, canvas)
 controls.enableDamping = true
@@ -274,17 +244,16 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 /**
  * Animate
  */
-const clock = new THREE.Clock()
+// const clock = new THREE.Clock()
 
 const tick = () =>
 {
-    const elapsedTime = clock.getElapsedTime()
-
-    // // Ghosts
+    // const elapsedTime = clock.getElapsedTime()
 
     // Update controls
-    controls.update()
+    controls.update( );
 
+    helper.update();
     // Render
     renderer.render(scene, camera)
 
